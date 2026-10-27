@@ -3,7 +3,7 @@
  * Pixel Agents Tileset Import Skill - Complete CLI wrapper for 7-stage asset extraction pipeline
  *
  * Usage:
- *   npx ts-node scripts/import-tileset-cli.ts
+ *   npm run import-tileset
  *
  * This script guides you through the complete process of extracting furniture assets
  * from a tileset PNG file and integrating them into the Pixel Agents extension.
@@ -379,7 +379,7 @@ async function runPipeline() {
   console.log('   3. Click "Edit" → "Place" to see all your furniture')
   console.log()
   console.log('To run another tileset, execute:')
-  console.log('   npx ts-node scripts/import-tileset-cli.ts')
+  console.log('   npm run import-tileset')
   console.log()
 }
 
