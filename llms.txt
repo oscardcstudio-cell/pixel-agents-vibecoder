@@ -1,0 +1,75 @@
+# Pixel Agents
+> Extension VS Code avec webview React : bureau en pixel art où les agents Claude Code (terminaux) sont des personnages animés. Fork de pablodelucca/pixel-agents.
+
+## Vue d'ensemble
+- [CLAUDE.md](CLAUDE.md): règles et commandes de build
+- [docs/reference.md](docs/reference.md): détail technique (protocole extension/webview, suivi des agents, éditeur de layout, système d'assets)
+
+## Fichiers critiques
+    src/                          — Extension backend (Node.js, VS Code API)
+      constants.ts                — All backend magic numbers/strings (timing, truncation, asset parsing, VS Code IDs)
+      extension.ts                — Entry: activate(), deactivate()
+      PixelAgentsViewProvider.ts   — WebviewViewProvider, message dispatch, asset loading
+      assetLoader.ts              — PNG parsing, sprite conversion, catalog building, default layout loading
+      agentManager.ts             — Terminal lifecycle: launch, remove, restore, persist
+      layoutPersistence.ts        — User-level layout file I/O (~/.pixel-agents/layout.json), migration, cross-window watching
+      fileWatcher.ts              — fs.watch + polling, readNewLines, /clear detection, terminal adoption
+      transcriptParser.ts         — JSONL parsing: tool_use/tool_result → webview messages
+      timerManager.ts             — Waiting/permission timer logic
+      types.ts                    — Shared interfaces (AgentState, PersistedAgent)
+    
+    webview-ui/src/               — React + TypeScript (Vite)
+      constants.ts                — All webview magic numbers/strings (grid, animation, rendering, camera, zoom, editor, game logic, notification sound)
+      notificationSound.ts        — Web Audio API chime on agent turn completion, with enable/disable
+      App.tsx                     — Composition root, hooks + components + EditActionBar
+      hooks/
+        useExtensionMessages.ts   — Message handler + agent/tool state
+        useEditorActions.ts       — Editor state + callbacks
+        useEditorKeyboard.ts      — Keyboard shortcut effect
+      components/
+        BottomToolbar.tsx          — + Agent, Layout toggle, Settings button
+        ZoomControls.tsx           — +/- zoom (top-right)
+        SettingsModal.tsx          — Centered modal: settings, export/import layout, sound toggle, debug toggle
+        DebugView.tsx              — Debug overlay
+      office/
+        types.ts                  — Interfaces (OfficeLayout, FloorColor, Character, etc.) + re-exports constants from constants.ts
+        toolUtils.ts              — STATUS_TO_TOOL mapping, extractToolName(), defaultZoom()
+        colorize.ts               — Dual-mode color module: Colorize (grayscale→HSL) + Adjust (HSL shift)
+        floorTiles.ts             — Floor sprite storage + colorized cache
+        wallTiles.ts              — Wall auto-tile: 16 bitmask sprites from walls.png
+        sprites/
+          spriteData.ts           — Pixel data: characters (6 pre-colored from PNGs, fallback templates), furniture, tiles, bubbles
+          spriteCache.ts          — SpriteData → offscreen canvas, per-zoom WeakMap cache, outline sprites
+        editor/
+          editorActions.ts        — Pure layout ops: paint, place, remove, move, rotate, toggleState, canPlace, expandLayout
+          editorState.ts          — Imperative state: tools, ghost, selection, undo/redo, dirty, drag
+          EditorToolbar.tsx       — React toolbar/palette for edit mode
+        layout/
+          furnitureCatalog.ts     — Dynamic catalog from loaded assets + getCatalogEntry()
+          layoutSerializer.ts     — OfficeLayout ↔ runtime (tileMap, furniture, seats, blocked)
+          tileMap.ts              — Walkability, BFS pathfinding
+        engine/
+          characters.ts           — Character FSM: idle/walk/type + wander AI
+          officeState.ts          — Game world: layout, characters, seats, selection, subagents
+          gameLoop.ts             — rAF loop with delta time (capped 0.1s)
+          renderer.ts             — Canvas: tiles, z-sorted entities, overlays, edit UI
+          matrixEffect.ts         — Matrix-style spawn/despawn digital rain effect
+        components/
+          OfficeCanvas.tsx        — Canvas, resize, DPR, mouse hit-testing, edit interactions, drag-to-move
+          ToolOverlay.tsx          — Activity status label above hovered/selected character + close button
+    
+    scripts/                      — 7-stage asset extraction pipeline
+      0-import-tileset.ts         — Interactive CLI wrapper
+      1-detect-assets.ts          — Flood-fill asset detection
+      2-asset-editor.html         — Browser UI for position/bounds editing
+      3-vision-inspect.ts         — Claude vision auto-metadata
+      4-review-metadata.html      — Browser UI for metadata review
+      5-export-assets.ts          — Export PNGs + furniture-catalog.json
+      asset-manager.html          — Unified editor (Stage 2+4 combined), Save/Save As via File System Access API
+      generate-walls.js           — Generate walls.png (4×4 grid of 16×32 auto-tile pieces)
+      wall-tile-editor.html       — Browser UI for editing wall tile appearance
+
+## Points non-évidents (gotchas)
+- `webview-ui/` est un projet Vite séparé (propres `node_modules`, `tsconfig`, lockfile) : installer aussi dedans.
+- L'état d'un agent vient des fichiers JSONL de `~/.claude/projects/`, pas de hooks (les hooks ont échoué).
+- Layout utilisateur dans `~/.pixel-agents/layout.json`, partagé entre fenêtres VS Code.
