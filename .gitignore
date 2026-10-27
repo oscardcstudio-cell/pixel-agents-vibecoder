@@ -1,5 +1,6 @@
 out
 dist
+build/
 node_modules
 .vscode-test/
 *.vsix
@@ -7,3 +8,15 @@ node_modules
 /logs
 /sprites-export
 .env
+.env.*
+!.env.example
+.venv/
+venv/
+__pycache__/
+.cache/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.playwright-mcp/
